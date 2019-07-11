@@ -1,6 +1,7 @@
 1.9.14
 Worldmap:
   * memory and performance optimization: line rendering - clip long lines protruding out of viewport
+  * consistent page reloads: center+zoom of the map kept in URL
 
 1.9.13
 Worldmap:
