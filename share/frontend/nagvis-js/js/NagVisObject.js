@@ -333,9 +333,9 @@ var NagVisObject = Base.extend({
             addZoom = true;
 
         var coord = 0;
-        if(!isRelativeCoord(val)) {
-            coord = parseInt(val);
-        } else {
+
+        // no relative coordinates on worldmap
+        if(!oViewProperties.params.worldmap_zoom && isRelativeCoord(val)) {
             // This must be an object id. Is there an offset given?
             if(val.search('%') !== -1) {
                 var parts     = val.split('%');
@@ -360,6 +360,8 @@ var NagVisObject = Base.extend({
                 if(refObj)
                     coord = parseInt(refObj.parseCoord(refObj.conf[dir], dir, false));
             }
+        } else {
+            coord = parseInt(val);
         }
 
         if (addZoom)
