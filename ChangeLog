@@ -1,6 +1,8 @@
 1.9.21
 Frontend:
   * FIX: Fix random error "NotFoundError: Node.removeChild"
+Worldmap:
+  * improved rendering performance
 
 1.9.20
 Core:
