@@ -1,5 +1,8 @@
 #!/bin/bash
 
+SED='sed'
+[[ "$OSTYPE" =~ 'darwin' ]] && SED='gsed'
+
 #
 # (1) doplnit do default.index.html:
 #  <script type="text/javascript" src="{$htmlJs}ViewWorldmap-HackZaslepeniMapy.js?v={$version}" id="HackZaslepeniMapy" data-client-remote-address="{$REMOTE_ADDR}"></script>
@@ -7,7 +10,7 @@
 if ! grep 'script.*ViewWorldmap-HackZaslepeniMapy\.js' share/userfiles/templates/default.index.html >/dev/null
 then
   SCRIPT='<script type="text/javascript" src="{$htmlJs}ViewWorldmap-HackZaslepeniMapy.js?v={$version}" id="HackZaslepeniMapy" data-client-remote-address="{$REMOTE_ADDR}"></script>'
-  gsed -i "/<\/head>/i $SCRIPT" share/userfiles/templates/default.index.html
+  $SED -i "/<\/head>/i $SCRIPT" share/userfiles/templates/default.index.html
 fi
 
 #
@@ -17,7 +20,7 @@ fi
 if ! grep 'aData.*REMOTE_ADDR.*_SERVER' share/frontend/nagvis-js/classes/NagVisIndexView.php >/dev/null
 then
   SNIPPET='$aData["REMOTE_ADDR"] = $_SERVER["REMOTE_ADDR"];'
-  gsed -i "/Build page based on the template file and the data array/a $SNIPPET" share/frontend/nagvis-js/classes/NagVisIndexView.php
+  $SED -i "/Build page based on the template file and the data array/a $SNIPPET" share/frontend/nagvis-js/classes/NagVisIndexView.php
 fi
 
 #
