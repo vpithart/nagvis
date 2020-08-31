@@ -1,4 +1,6 @@
 1.9.22
+Frontend:
+  * Added new line type: polylines (polygonal chains)
 
 1.9.21
 Worldmap:

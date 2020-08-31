@@ -161,13 +161,13 @@ var ElementContext = Element.extend({
                                                   document.documentElement.scrollTop;
         var scrollLeft = document.body.scrollLeft ? document.body.scrollLeft :
                                                     document.documentElement.scrollLeft;
-    
+
         // hide the menu first to avoid an "up-then-over" visual effect
         this.dom_obj.style.display = 'none';
         this.dom_obj.style.left = this.coords[0] + this.spacing + scrollLeft - getSidebarWidth() + 'px';
         this.dom_obj.style.top = this.coords[1] + this.spacing + scrollTop - getHeaderHeight() + 'px';
         this.dom_obj.style.display = '';
-    
+
         // Check if the context menu is "in screen".
         // When not: reposition
         var contextLeft = parseInt(this.dom_obj.style.left.replace('px', ''));
@@ -175,7 +175,7 @@ var ElementContext = Element.extend({
             // move the context menu to the left
             this.dom_obj.style.left = contextLeft - this.dom_obj.clientWidth + 'px';
         }
-    
+
         var contextTop = parseInt(this.dom_obj.style.top.replace('px', ''));
         if(contextTop+this.dom_obj.clientHeight > pageHeight()) {
             // Only move the context menu to the top when the new top will not be
@@ -292,6 +292,13 @@ var ElementContext = Element.extend({
         // Replace map range macros when not in a hostgroup
         if(this.obj.conf.type !== 'map')
             oSectionMacros.map = '<!--\\sBEGIN\\smap\\s-->.+?<!--\\sEND\\smap\\s-->';
+
+        // Polyline-specific
+        if(this.obj.conf.line_type !== '19')
+          oSectionMacros.polylinecut = '<!--\\sBEGIN\\spolyline\\s-->.+?<!--\\sEND\\spolyline\\s-->';
+
+        if(this.obj.conf.line_type === '19' && this.obj.conf.x.split(',').length < 3)
+          oSectionMacros.polylinecut3p = '<!--\\sBEGIN\\spolylineatleastthreepoints\\s-->.+?<!--\\sEND\\spolylineatleastthreepoints\\s-->';
 
         // Loop all registered actions, check wether or not this action should be shown for this object
         // and either add the replacement section or not
