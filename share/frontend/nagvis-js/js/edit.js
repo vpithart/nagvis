@@ -61,6 +61,8 @@ var dragStopHandlers = {};
 var dragMoveHandlers = {};
 var dragObjects      = {};
 
+var addingPointToObject = null;
+
 var g_resize_obj = null; //This gets a value as soon as a resize start
 
 /** Object resizing **/
@@ -564,6 +566,29 @@ function cloneObject(e, objId) {
     return addObject(e, obj.conf.type, obj.conf.view_type, numClicks, 'clone');
 }
 
+function addPolylinePointStart(e, objId) {
+  var obj = getMapObjByDomObjId(objId);
+
+  // Draw a line to illustrate the progress of drawing the current line
+  var coordsX = obj.parseCoords(obj.conf.x, 'x');
+  var coordsY = obj.parseCoords(obj.conf.y, 'y');
+  addX.push(coordsX[coordsX.length - 1]);
+  addY.push(coordsY[coordsY.length - 1]);
+
+  addShape = new jsGraphics('map');
+  addShape.cnv.setAttribute('id', 'drawing');
+
+  addShape.setColor('#06B6B6');
+  addShape.setStroke(1);
+
+  addFollow = true;
+
+  addingPointToObject = obj;
+  addingPointToObject.originalCoords = g_view.unproject(coordsX, coordsY);
+
+  addObject(e, obj.conf.type, 'line', 1, 'add-line-point');
+}
+
 /**
  * Is called once to start the object creation
  */
@@ -666,6 +691,11 @@ function addClick(e) {
     // If this is reached all object coords have been collected
     //
 
+    if(addAction == 'add-line-point') {
+      addPolylinePointFinish();
+      return false;
+    }
+
     if(addObjType == 'textbox' || addObjType == 'container') {
         var w = addX.pop() - addX[0];
         var h = addY.pop() - addY[0];
@@ -683,7 +713,7 @@ function addClick(e) {
                + '&x=' + addX.join(',')
                + '&y=' + addY.join(',');
 
-    if(addObjType != 'textbox' && addObjType != 'container' 
+    if(addObjType != 'textbox' && addObjType != 'container'
        && addObjType != 'shape' && addViewType != 'icon' && addViewType != '')
         sUrl += '&view_type=' + addViewType;
 
@@ -705,6 +735,41 @@ function addClick(e) {
     showFrontendDialog(sUrl, _('Create Object'));
     stopAdding();
     return false;
+}
+
+function addPolylinePointFinish() {
+  // remove the line to illustrate
+  if(addShape !== null) {
+    addShape.clear();
+    document.getElementById('map').removeChild(addShape.cnv);
+  }
+
+  var newPointX = addX[1];
+  var newPointY = addY[1];
+
+  // modify local
+  var parts = g_view.project(addingPointToObject.originalCoords[0], addingPointToObject.originalCoords[1]);
+  var newX = parts[0];
+  var newY = parts[1];
+  newX.push(newPointX);
+  newY.push(newPointY);
+
+  addingPointToObject.conf.x = newX.join(',');
+  addingPointToObject.conf.y = newY.join(',');
+
+  // re-render
+  addingPointToObject.render();
+
+  // modify in backend
+  var parts = g_view.unproject(newX, newY);
+  saveObjectAttr(addingPointToObject.conf.object_id, {
+    'x': parts[0],
+    'y': parts[1],
+  });
+
+  addingPointToObject = null;
+
+  stopAdding();
 }
 
 function adding() {
@@ -951,6 +1016,30 @@ function removeMapObject(event, object_id) {
     event = event || window.event;
     g_view.removeObject(object_id);
     return preventDefaultEvents(event);
+}
+
+function removePolylinePoint(event, objId) {
+  var obj = getMapObjByDomObjId(objId);
+
+  var x = obj.parseCoords(obj.conf.x, 'x');
+  var y = obj.parseCoords(obj.conf.y, 'y');
+
+  if (x.length < 3) return;
+
+  x.pop();
+  y.pop();
+
+  obj.conf.x = x.join(',');
+  obj.conf.y = y.join(',');
+
+  obj.render();
+
+  // modify in backend
+  var parts = g_view.unproject(x, y);
+  saveObjectAttr(obj.conf.object_id, {
+    'x': parts[0],
+    'y': parts[1],
+  });
 }
 
 /************************************************

@@ -18,7 +18,16 @@
     <!-- BEGIN locked -->
     <li><a href="#" onClick="toggleMapObjectLock(event, '[obj_id]'); contextHide();return false">[lang_unlock]</a></li>
     <!-- END locked -->
+
     <!-- BEGIN unlocked -->
+    <!-- BEGIN polyline -->
+    <li class="spacer"><hr /></li>
+    <li><a href="#" onClick="addPolylinePointStart(event, '[obj_id]');contextHide();return false">Polyline: add point</a></li>
+    <!-- BEGIN polylineatleastthreepoints -->
+    <li><a href="#" onClick="removePolylinePoint(event, '[obj_id]');contextHide();return false">Polyline: delete last point</a></li>
+    <!-- END polylineatleastthreepoints -->
+    <!-- END polyline -->
+    <li class="spacer"><hr /></li>
     <li><a href="#" onClick="toggleMapObjectLock(event, '[obj_id]'); contextHide();return false">[lang_lock]</a></li>
     <li><a href="#" onClick="showAddModifyDialog('[map_name]', '[obj_id]');contextHide();return false">[lang_modify]</a></li>
     <li><a href="#" onClick="removeMapObject(event, '[obj_id]');contextHide();return false">[lang_delete]</a></li>
