@@ -160,6 +160,11 @@ var ViewMap = View.extend({
     },
 
     addObject: function(attrs) {
+        let obj = this.constructObject(attrs);
+        this.objects[obj.conf.object_id] = obj;
+    },
+
+    constructObject: function(attrs) {
         var obj;
         switch (attrs.type) {
             case 'host':
@@ -205,8 +210,7 @@ var ViewMap = View.extend({
         if (!obj.bIsLocked)
             this.updateNumUnlocked(1);
 
-        // Put object to map objects array
-        this.objects[obj.conf.object_id] = obj;
+        return obj;
     },
 
     erase: function() {
