@@ -72,6 +72,18 @@ class GlobalBackendmklivestatus implements GlobalBackendInterface {
           'default'   => 5,
           'match'     => MATCH_INTEGER,
         ),
+        'query_cache_seconds' => Array(
+          'must'      => 0,
+          'editable'  => 1,
+          'default'   => 0,
+          'match'     => MATCH_INTEGER,
+        ),
+        'query_cache_directory' => Array(
+          'must'      => 0,
+          'editable'  => 1,
+          'default'   => '/dev/shm/mklivestatus-query-cache',
+          'match'     => MATCH_STRING_PATH,
+        )
     );
 
     /**
@@ -96,6 +108,11 @@ class GlobalBackendmklivestatus implements GlobalBackendInterface {
         if(!function_exists('fsockopen')) {
             throw new BackendConnectionProblem(l('The PHP function fsockopen is not available. Needed by backend [BACKENDID].',
                                Array('BACKENDID' => $this->backendId, 'SOCKET' => $this->socketPath)));
+        }
+
+        if(intval(cfg('backend_'.$this->backendId, 'query_cache_seconds')) > 0) {
+          $cacheDir = cfg('backend_'.$this->backendId, 'query_cache_directory');
+          if (!is_dir($cacheDir)) mkdir($cacheDir);
         }
 
         return true;
@@ -302,19 +319,24 @@ class GlobalBackendmklivestatus implements GlobalBackendInterface {
             $query .= "AuthUser: $userName\n";
         }
 
+        $cacheMaxAge = intval(cfg('backend_'.$this->backendId, 'query_cache_seconds'));
         $useCache = false;
+        $cacheFileName = '';
+        $queryHash = '';
 
         if($response) {
           // Query to get a json formated array back
           // Use KeepAlive with fixed16 header
             $query .= "OutputFormat: json\nKeepAlive: on\nResponseHeader: fixed16\n\n";
 
-            $queryHash = md5($query);
-            $cacheFileName = "/tmp/mklivecache-$queryHash";
-            $cacheFileMtime = @filemtime($cacheFileName);
-            if ($cacheFileMtime !== false) {
-              $cacheFileAge = microtime(true) - $cacheFileMtime;
-              if ($cacheFileAge < 60) $useCache = true;
+            if ($cacheMaxAge > 0) {
+                $queryHash = md5($query);
+                $cacheFileName = cfg('backend_'.$this->backendId, 'query_cache_directory') . "/mklivequery-$queryHash";
+                $cacheFileMtime = @filemtime($cacheFileName);
+                if ($cacheFileMtime !== false) {
+                    $cacheFileAge = microtime(true) - $cacheFileMtime;
+                    if ($cacheFileAge <= $cacheMaxAge) $useCache = true;
+                }
             }
         }
 
@@ -384,7 +406,7 @@ class GlobalBackendmklivestatus implements GlobalBackendInterface {
 
           $t = (microtime(true) - $t0)*1000;
           $t10 = microtime(true);
-          file_put_contents($cacheFileName, $read);
+          if ($cacheFileName) file_put_contents($cacheFileName, $read);
           $t1 = (microtime(true) - $t10)*1000;
           error_log("queryLiveStatus ONLINE time=$t ms $queryHash q:" . strlen($query) . " r:" . strlen($read) . " saved in $t1 ms");
         }
