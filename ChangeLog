@@ -14,7 +14,7 @@ Frontend:
 
 Worldmap:
   * Feature: more flexible line coloring ('stateful_outline' and 'fixed_colors')
-  * textbox scaling according to zoom (scale_to_max_zoom option) (issue #255)
+  * textbox scaling according to zoom (scale_to_zoom option) (pull #255, #263)
   * Feature: screen-fixed objects
 
 1.9.20
