@@ -281,6 +281,8 @@ class GlobalBackendmklivestatus implements GlobalBackendInterface {
      * @author  Lars Michelsen <lm@larsmichelsen.com>
      */
     private function queryLivestatus($query, $response = true) {
+        $t0 = microtime(true);
+
         // Only connect when no connection opened yet
         if($this->SOCKET === null) {
             $this->connectSocket();
@@ -300,65 +302,91 @@ class GlobalBackendmklivestatus implements GlobalBackendInterface {
             $query .= "AuthUser: $userName\n";
         }
 
-        // Query to get a json formated array back
-        // Use KeepAlive with fixed16 header
-        if($response)
+        $useCache = false;
+
+        if($response) {
+          // Query to get a json formated array back
+          // Use KeepAlive with fixed16 header
             $query .= "OutputFormat: json\nKeepAlive: on\nResponseHeader: fixed16\n\n";
-        // Disable regular error reporting to suppress php error messages
-        $oldLevel = error_reporting(0);
-        $write = fwrite($this->SOCKET, $query);
-        error_reporting($oldLevel);
 
-        if($write=== false)
-            throw new BackendConnectionProblem(l('Problem while writing to socket [SOCKET] in backend [BACKENDID]: [MSG]',
-                                                 Array('BACKENDID' => $this->backendId,
-                                                       'SOCKET'    => $this->socketPath,
-                                                       'MSG'       => 'Error while sending query to socket.')));
-
-        if($write !== strlen($query))
-            throw new BackendConnectionProblem(l('Problem while writing to socket [SOCKET] in backend [BACKENDID]: [MSG]',
-                                                 Array('BACKENDID' => $this->backendId,
-                                                       'SOCKET'    => $this->socketPath,
-                                                       'MSG'       => 'Connection terminated.')));
-
-
-        // Return here if no answer is expected
-        if(!$response)
-            return;
-
-        // Read 16 bytes to get the status code and body size
-        $read = $this->readSocket(16);
-
-        // Catch problem while reading
-        if($read === false)
-            throw new BackendConnectionProblem(l('Problem while reading from socket [SOCKET] in backend [BACKENDID]: [MSG]',
-                                                 Array('BACKENDID' => $this->backendId,
-                                                       'SOCKET'    => $this->socketPath,
-                                                       'MSG'       => 'Error while reading socket (header)')));
-
-        // Extract status code
-        $status = substr($read, 0, 3);
-
-        // Extract content length
-        $len = intval(trim(substr($read, 4, 11)));
-
-        // Read socket until end of data
-        $read = $this->readSocket($len);
-
-        // Catch problem while reading
-        if($read === false) {
-            throw new BackendConnectionProblem(l('Problem while reading from socket [SOCKET] in backend [BACKENDID]: [MSG]',
-                                                 Array('BACKENDID' => $this->backendId,
-                                                       'SOCKET'    => $this->socketPath,
-                                                       'MSG'       => 'Error while reading socket (content)')));
+            $queryHash = md5($query);
+            $cacheFileName = "/tmp/mklivecache-$queryHash";
+            $cacheFileMtime = @filemtime($cacheFileName);
+            if ($cacheFileMtime !== false) {
+              $cacheFileAge = microtime(true) - $cacheFileMtime;
+              if ($cacheFileAge < 60) $useCache = true;
+            }
         }
 
-        // Catch errors (Like HTTP 200 is OK)
-        if($status != "200") {
+        if ($useCache) {
+          $read = file_get_contents($cacheFileName);
+          $status = substr($read, 0, 3);
+
+          $t = (microtime(true) - $t0)*1000;
+          error_log("queryLiveStatus CACHED $cacheFileAge s time=$t ms $queryHash q:" . strlen($query) . " r:" . strlen($read));
+        } else {
+          // Disable regular error reporting to suppress php error messages
+          $oldLevel = error_reporting(0);
+          $write = fwrite($this->SOCKET, $query);
+          error_reporting($oldLevel);
+
+          if($write=== false)
+              throw new BackendConnectionProblem(l('Problem while writing to socket [SOCKET] in backend [BACKENDID]: [MSG]',
+                                                  Array('BACKENDID' => $this->backendId,
+                                                        'SOCKET'    => $this->socketPath,
+                                                        'MSG'       => 'Error while sending query to socket.')));
+
+          if($write !== strlen($query))
+              throw new BackendConnectionProblem(l('Problem while writing to socket [SOCKET] in backend [BACKENDID]: [MSG]',
+                                                  Array('BACKENDID' => $this->backendId,
+                                                        'SOCKET'    => $this->socketPath,
+                                                        'MSG'       => 'Connection terminated.')));
+
+
+          // Return here if no answer is expected
+          if(!$response)
+              return;
+
+          // Read 16 bytes to get the status code and body size
+          $read = $this->readSocket(16);
+
+          // Catch problem while reading
+          if($read === false)
+              throw new BackendConnectionProblem(l('Problem while reading from socket [SOCKET] in backend [BACKENDID]: [MSG]',
+                                                  Array('BACKENDID' => $this->backendId,
+                                                        'SOCKET'    => $this->socketPath,
+                                                        'MSG'       => 'Error while reading socket (header)')));
+
+          // Extract status code
+          $status = substr($read, 0, 3);
+
+          // Extract content length
+          $len = intval(trim(substr($read, 4, 11)));
+
+          // Read socket until end of data
+          $read = $this->readSocket($len);
+
+          // Catch problem while reading
+          if($read === false) {
             throw new BackendConnectionProblem(l('Problem while reading from socket [SOCKET] in backend [BACKENDID]: [MSG]',
-                                                 Array('BACKENDID' => $this->backendId,
-                                                       'SOCKET'    => $this->socketPath,
-                                                       'MSG'       => $read)));
+                                                Array('BACKENDID' => $this->backendId,
+                                                      'SOCKET'    => $this->socketPath,
+                                                      'MSG'       => 'Error while reading socket (content)')));
+          }
+
+          // Catch errors (Like HTTP 200 is OK)
+          if($status != "200") {
+            throw new BackendConnectionProblem(l('Problem while reading from socket [SOCKET] in backend [BACKENDID]: [MSG]',
+                                                Array('BACKENDID' => $this->backendId,
+                                                      'SOCKET'    => $this->socketPath,
+                                                      'MSG'       => $read)));
+          }
+
+          $t = (microtime(true) - $t0)*1000;
+          $t10 = microtime(true);
+          file_put_contents($cacheFileName, $read);
+          $t1 = (microtime(true) - $t10)*1000;
+          error_log("queryLiveStatus ONLINE time=$t ms $queryHash q:" . strlen($query) . " r:" . strlen($read) . " saved in $t1 ms");
         }
 
         //$fh = fopen('/tmp/live', 'a');
@@ -587,7 +615,7 @@ class GlobalBackendmklivestatus implements GlobalBackendInterface {
             if($isMemberQuery && $OBJS[0]->getType() == 'dyngroup') {
                 return $OBJS[0]->getObjectFilter();
             }
-            
+
             // Are there child exclude filters defined for this object?
             // The objType is the type of the objects to query the data for
             if($isMemberQuery && $OBJS[0]->hasExcludeFilters($isCountQuery)) {
@@ -767,7 +795,7 @@ class GlobalBackendmklivestatus implements GlobalBackendInterface {
             $stateAttr = 'state';
 
         $q = "GET hosts\n".
-          "Columns: ".$stateAttr." plugin_output alias display_name ".
+          "Columns: ".$stateAttr."   alias display_name ".
           "address notes last_check next_check state_type ".
           "current_attempt max_check_attempts last_state_change ".
           "last_hard_state_change perf_data acknowledged ".
@@ -883,7 +911,7 @@ class GlobalBackendmklivestatus implements GlobalBackendInterface {
           "GET services\n" .
           $objFilter.
           "Columns: description display_name ".$stateAttr." ".
-          "host_alias host_address plugin_output notes last_check next_check ".
+          "host_alias host_address   notes last_check next_check ".
           "state_type current_attempt max_check_attempts last_state_change ".
           "last_hard_state_change perf_data scheduled_downtime_depth ".
           "acknowledged host_acknowledged host_scheduled_downtime_depth ".
@@ -1535,7 +1563,7 @@ class GlobalBackendmklivestatus implements GlobalBackendInterface {
             $what = 'HOST';
         elseif($what == 'service')
             $what = 'SVC';
-        
+
         $sticky  = $sticky ? '2' : '0';
         $notify  = $notify ? '1' : '0';
         $persist = $notify ? '1' : '0';
