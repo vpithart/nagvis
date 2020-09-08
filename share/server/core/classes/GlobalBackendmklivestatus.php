@@ -1001,9 +1001,12 @@ class GlobalBackendmklivestatus implements GlobalBackendInterface {
                     else
                         $custom_vars = null;
 
+                    $plugin_output = $e[5];
+                    $plugin_output = preg_replace('#<iframe\s.*?>(.*?)</iframe>#i', '', $plugin_output);
+
                     $svc = array(
                         $state,
-                        $e[5],  // output
+                        $plugin_output,
                         $acknowledged,
                         $in_downtime,
                         (float)$e[24], // staleness
