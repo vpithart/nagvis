@@ -308,10 +308,6 @@ class GlobalBackendmklivestatus implements GlobalBackendInterface {
             //$this->verifyLivestatusVersion();
         }
 
-        //$fh = fopen('/tmp/live', 'a');
-        //fwrite($fh, $query."\n\n");
-        //fclose($fh);
-
         //Add authorization data to mk livestatus query
         if(cfg('global', 'only_permitted_objects') == true) {
             global $AUTH;
@@ -334,7 +330,7 @@ class GlobalBackendmklivestatus implements GlobalBackendInterface {
                 $cacheFileName = cfg('backend_'.$this->backendId, 'query_cache_directory') . "/mklivequery-$queryHash";
                 $cacheFileMtime = @filemtime($cacheFileName);
                 if ($cacheFileMtime !== false) {
-                    $cacheFileAge = microtime(true) - $cacheFileMtime;
+                    $cacheFileAge = $t0 - $cacheFileMtime;
                     if ($cacheFileAge <= $cacheMaxAge) $useCache = true;
                 }
             }
@@ -343,9 +339,6 @@ class GlobalBackendmklivestatus implements GlobalBackendInterface {
         if ($useCache) {
           $read = file_get_contents($cacheFileName);
           $status = substr($read, 0, 3);
-
-          $t = (microtime(true) - $t0)*1000;
-          error_log("queryLiveStatus CACHED $cacheFileAge s time=$t ms $queryHash q:" . strlen($query) . " r:" . strlen($read));
         } else {
           // Disable regular error reporting to suppress php error messages
           $oldLevel = error_reporting(0);
@@ -404,16 +397,8 @@ class GlobalBackendmklivestatus implements GlobalBackendInterface {
                                                       'MSG'       => $read)));
           }
 
-          $t = (microtime(true) - $t0)*1000;
-          $t10 = microtime(true);
           if ($cacheFileName) file_put_contents($cacheFileName, $read);
-          $t1 = (microtime(true) - $t10)*1000;
-          error_log("queryLiveStatus ONLINE time=$t ms $queryHash q:" . strlen($query) . " r:" . strlen($read) . " saved in $t1 ms");
         }
-
-        //$fh = fopen('/tmp/live', 'a');
-        //fwrite($fh, $read."\n\n");
-        //fclose($fh);
 
         // Decode the json response
         $obj = json_decode(utf8_encode($read));
@@ -1670,6 +1655,20 @@ class GlobalBackendmklivestatus implements GlobalBackendInterface {
             }
         }
         return $contacts;
+    }
+
+    public function cleanQueryCache() {
+      $cacheDir = cfg('backend_'.$this->backendId, 'query_cache_directory');
+      $cacheMaxAge = intval(cfg('backend_'.$this->backendId, 'query_cache_seconds'));
+      $minMtimeToKeep = microtime(true) - $cacheMaxAge;
+
+      if ($cacheDir && is_dir($cacheDir) && chdir($cacheDir)) {
+        foreach (scandir('.') as $fileName) {
+          if (is_file($fileName) && filemtime($fileName) < $minMtimeToKeep) {
+            unlink($fileName);
+          }
+        }
+      }
     }
 }
 ?>
