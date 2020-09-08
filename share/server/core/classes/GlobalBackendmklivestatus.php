@@ -802,7 +802,7 @@ class GlobalBackendmklivestatus implements GlobalBackendInterface {
             $stateAttr = 'state';
 
         $q = "GET hosts\n".
-          "Columns: ".$stateAttr."   alias display_name ".
+          "Columns: ".$stateAttr." plugin_output alias display_name ".
           "address notes last_check next_check state_type ".
           "current_attempt max_check_attempts last_state_change ".
           "last_hard_state_change perf_data acknowledged ".
@@ -918,7 +918,7 @@ class GlobalBackendmklivestatus implements GlobalBackendInterface {
           "GET services\n" .
           $objFilter.
           "Columns: description display_name ".$stateAttr." ".
-          "host_alias host_address   notes last_check next_check ".
+          "host_alias host_address plugin_output notes last_check next_check ".
           "state_type current_attempt max_check_attempts last_state_change ".
           "last_hard_state_change perf_data scheduled_downtime_depth ".
           "acknowledged host_acknowledged host_scheduled_downtime_depth ".
