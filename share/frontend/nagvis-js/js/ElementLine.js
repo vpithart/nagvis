@@ -336,6 +336,18 @@ var ElementLine = Element.extend({
             y[i] = parseInt(y[i], 10);
         }
 
+        if (this.obj.conf.line_type != '19') {
+          let adjustedEndPoints = this.cutLineBeyondViewport(x[0], y[0], x[x.length - 1], y[y.length - 1]);
+          if (adjustedEndPoints === null) {
+              return; // Line won't be visible -> this.parts left empty -> no rendering
+          }
+
+          x[0] = adjustedEndPoints[0];
+          y[0] = adjustedEndPoints[1];
+          x[x.length - 1] = adjustedEndPoints[2];
+          y[y.length - 1] = adjustedEndPoints[3];
+        }
+
         var xStart = x[0];
         var yStart = y[0];
         var xEnd   = x[x.length - 1];
@@ -393,6 +405,14 @@ var ElementLine = Element.extend({
                 this.renderArrow(0, xStart, yStart, xMid, yMid, width);
                 this.renderArrow(1, xEnd, yEnd, xMid, yMid, width);
             break;
+            case '19':
+              // multiple part lines (polylines)
+              for (i=1; i<x.length; i++) {
+                this.renderSimpleLine(0, xStart, yStart, x[i], y[i], width);
+                xStart = x[i];
+                yStart = y[i];
+              }
+          break;
             default:
                 alert('Error: Unknown line type');
         }
