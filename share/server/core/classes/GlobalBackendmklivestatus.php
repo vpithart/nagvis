@@ -72,6 +72,18 @@ class GlobalBackendmklivestatus implements GlobalBackendInterface {
           'default'   => 5,
           'match'     => MATCH_INTEGER,
         ),
+        'query_cache_seconds' => Array(
+          'must'      => 0,
+          'editable'  => 1,
+          'default'   => 0,
+          'match'     => MATCH_INTEGER,
+        ),
+        'query_cache_directory' => Array(
+          'must'      => 0,
+          'editable'  => 1,
+          'default'   => '/dev/shm/mklivestatus-query-cache',
+          'match'     => MATCH_STRING_PATH,
+        )
     );
 
     /**
@@ -96,6 +108,11 @@ class GlobalBackendmklivestatus implements GlobalBackendInterface {
         if(!function_exists('fsockopen')) {
             throw new BackendConnectionProblem(l('The PHP function fsockopen is not available. Needed by backend [BACKENDID].',
                                Array('BACKENDID' => $this->backendId, 'SOCKET' => $this->socketPath)));
+        }
+
+        if(intval(cfg('backend_'.$this->backendId, 'query_cache_seconds')) > 0) {
+          $cacheDir = cfg('backend_'.$this->backendId, 'query_cache_directory');
+          if (!is_dir($cacheDir)) mkdir($cacheDir);
         }
 
         return true;
@@ -281,6 +298,8 @@ class GlobalBackendmklivestatus implements GlobalBackendInterface {
      * @author  Lars Michelsen <lm@larsmichelsen.com>
      */
     private function queryLivestatus($query, $response = true) {
+        $t0 = microtime(true);
+
         // Only connect when no connection opened yet
         if($this->SOCKET === null) {
             $this->connectSocket();
@@ -289,10 +308,6 @@ class GlobalBackendmklivestatus implements GlobalBackendInterface {
             //$this->verifyLivestatusVersion();
         }
 
-        //$fh = fopen('/tmp/live', 'a');
-        //fwrite($fh, $query."\n\n");
-        //fclose($fh);
-
         //Add authorization data to mk livestatus query
         if(cfg('global', 'only_permitted_objects') == true) {
             global $AUTH;
@@ -300,70 +315,90 @@ class GlobalBackendmklivestatus implements GlobalBackendInterface {
             $query .= "AuthUser: $userName\n";
         }
 
-        // Query to get a json formated array back
-        // Use KeepAlive with fixed16 header
-        if($response)
+        $cacheMaxAge = intval(cfg('backend_'.$this->backendId, 'query_cache_seconds'));
+        $useCache = false;
+        $cacheFileName = '';
+        $queryHash = '';
+
+        if($response) {
+          // Query to get a json formated array back
+          // Use KeepAlive with fixed16 header
             $query .= "OutputFormat: json\nKeepAlive: on\nResponseHeader: fixed16\n\n";
-        // Disable regular error reporting to suppress php error messages
-        $oldLevel = error_reporting(0);
-        $write = fwrite($this->SOCKET, $query);
-        error_reporting($oldLevel);
 
-        if($write=== false)
-            throw new BackendConnectionProblem(l('Problem while writing to socket [SOCKET] in backend [BACKENDID]: [MSG]',
-                                                 Array('BACKENDID' => $this->backendId,
-                                                       'SOCKET'    => $this->socketPath,
-                                                       'MSG'       => 'Error while sending query to socket.')));
-
-        if($write !== strlen($query))
-            throw new BackendConnectionProblem(l('Problem while writing to socket [SOCKET] in backend [BACKENDID]: [MSG]',
-                                                 Array('BACKENDID' => $this->backendId,
-                                                       'SOCKET'    => $this->socketPath,
-                                                       'MSG'       => 'Connection terminated.')));
-
-
-        // Return here if no answer is expected
-        if(!$response)
-            return;
-
-        // Read 16 bytes to get the status code and body size
-        $read = $this->readSocket(16);
-
-        // Catch problem while reading
-        if($read === false)
-            throw new BackendConnectionProblem(l('Problem while reading from socket [SOCKET] in backend [BACKENDID]: [MSG]',
-                                                 Array('BACKENDID' => $this->backendId,
-                                                       'SOCKET'    => $this->socketPath,
-                                                       'MSG'       => 'Error while reading socket (header)')));
-
-        // Extract status code
-        $status = substr($read, 0, 3);
-
-        // Extract content length
-        $len = intval(trim(substr($read, 4, 11)));
-
-        // Read socket until end of data
-        $read = $this->readSocket($len);
-
-        // Catch problem while reading
-        if($read === false) {
-            throw new BackendConnectionProblem(l('Problem while reading from socket [SOCKET] in backend [BACKENDID]: [MSG]',
-                                                 Array('BACKENDID' => $this->backendId,
-                                                       'SOCKET'    => $this->socketPath,
-                                                       'MSG'       => 'Error while reading socket (content)')));
+            if ($cacheMaxAge > 0) {
+                $queryHash = md5($query);
+                $cacheFileName = cfg('backend_'.$this->backendId, 'query_cache_directory') . "/mklivequery-$queryHash";
+                $cacheFileMtime = @filemtime($cacheFileName);
+                if ($cacheFileMtime !== false) {
+                    $cacheFileAge = $t0 - $cacheFileMtime;
+                    if ($cacheFileAge <= $cacheMaxAge) $useCache = true;
+                }
+            }
         }
 
-        // Catch errors (Like HTTP 200 is OK)
-        if($status != "200") {
-            throw new BackendConnectionProblem(l('Problem while reading from socket [SOCKET] in backend [BACKENDID]: [MSG]',
-                                                 Array('BACKENDID' => $this->backendId,
-                                                       'SOCKET'    => $this->socketPath,
-                                                       'MSG'       => $read)));
-        }
+        if ($useCache) {
+          $read = file_get_contents($cacheFileName);
+          $status = substr($read, 0, 3);
+        } else {
+          // Disable regular error reporting to suppress php error messages
+          $oldLevel = error_reporting(0);
+          $write = fwrite($this->SOCKET, $query);
+          error_reporting($oldLevel);
 
-        //$fh = fopen('/tmp/live', 'a');
-        //fwrite($fh, $read."\n\n");
-        //fclose($fh);
+          if($write=== false)
+              throw new BackendConnectionProblem(l('Problem while writing to socket [SOCKET] in backend [BACKENDID]: [MSG]',
+                                                  Array('BACKENDID' => $this->backendId,
+                                                        'SOCKET'    => $this->socketPath,
+                                                        'MSG'       => 'Error while sending query to socket.')));
+
+          if($write !== strlen($query))
+              throw new BackendConnectionProblem(l('Problem while writing to socket [SOCKET] in backend [BACKENDID]: [MSG]',
+                                                  Array('BACKENDID' => $this->backendId,
+                                                        'SOCKET'    => $this->socketPath,
+                                                        'MSG'       => 'Connection terminated.')));
+
+
+          // Return here if no answer is expected
+          if(!$response)
+              return;
+
+          // Read 16 bytes to get the status code and body size
+          $read = $this->readSocket(16);
+
+          // Catch problem while reading
+          if($read === false)
+              throw new BackendConnectionProblem(l('Problem while reading from socket [SOCKET] in backend [BACKENDID]: [MSG]',
+                                                  Array('BACKENDID' => $this->backendId,
+                                                        'SOCKET'    => $this->socketPath,
+                                                        'MSG'       => 'Error while reading socket (header)')));
+
+          // Extract status code
+          $status = substr($read, 0, 3);
+
+          // Extract content length
+          $len = intval(trim(substr($read, 4, 11)));
+
+          // Read socket until end of data
+          $read = $this->readSocket($len);
+
+          // Catch problem while reading
+          if($read === false) {
+            throw new BackendConnectionProblem(l('Problem while reading from socket [SOCKET] in backend [BACKENDID]: [MSG]',
+                                                Array('BACKENDID' => $this->backendId,
+                                                      'SOCKET'    => $this->socketPath,
+                                                      'MSG'       => 'Error while reading socket (content)')));
+          }
+
+          // Catch errors (Like HTTP 200 is OK)
+          if($status != "200") {
+            throw new BackendConnectionProblem(l('Problem while reading from socket [SOCKET] in backend [BACKENDID]: [MSG]',
+                                                Array('BACKENDID' => $this->backendId,
+                                                      'SOCKET'    => $this->socketPath,
+                                                      'MSG'       => $read)));
+          }
+
+          if ($cacheFileName) file_put_contents($cacheFileName, $read);
+        }
 
         // Decode the json response
         $obj = json_decode(utf8_encode($read));
@@ -587,7 +622,7 @@ class GlobalBackendmklivestatus implements GlobalBackendInterface {
             if($isMemberQuery && $OBJS[0]->getType() == 'dyngroup') {
                 return $OBJS[0]->getObjectFilter();
             }
-            
+
             // Are there child exclude filters defined for this object?
             // The objType is the type of the objects to query the data for
             if($isMemberQuery && $OBJS[0]->hasExcludeFilters($isCountQuery)) {
@@ -767,7 +802,7 @@ class GlobalBackendmklivestatus implements GlobalBackendInterface {
             $stateAttr = 'state';
 
         $q = "GET hosts\n".
-          "Columns: ".$stateAttr." plugin_output alias display_name ".
+          "Columns: ".$stateAttr."   alias display_name ".
           "address notes last_check next_check state_type ".
           "current_attempt max_check_attempts last_state_change ".
           "last_hard_state_change perf_data acknowledged ".
@@ -883,7 +918,7 @@ class GlobalBackendmklivestatus implements GlobalBackendInterface {
           "GET services\n" .
           $objFilter.
           "Columns: description display_name ".$stateAttr." ".
-          "host_alias host_address plugin_output notes last_check next_check ".
+          "host_alias host_address   notes last_check next_check ".
           "state_type current_attempt max_check_attempts last_state_change ".
           "last_hard_state_change perf_data scheduled_downtime_depth ".
           "acknowledged host_acknowledged host_scheduled_downtime_depth ".
@@ -1535,7 +1570,7 @@ class GlobalBackendmklivestatus implements GlobalBackendInterface {
             $what = 'HOST';
         elseif($what == 'service')
             $what = 'SVC';
-        
+
         $sticky  = $sticky ? '2' : '0';
         $notify  = $notify ? '1' : '0';
         $persist = $notify ? '1' : '0';
@@ -1620,6 +1655,20 @@ class GlobalBackendmklivestatus implements GlobalBackendInterface {
             }
         }
         return $contacts;
+    }
+
+    public function cleanQueryCache() {
+      $cacheDir = cfg('backend_'.$this->backendId, 'query_cache_directory');
+      $cacheMaxAge = intval(cfg('backend_'.$this->backendId, 'query_cache_seconds'));
+      $minMtimeToKeep = microtime(true) - $cacheMaxAge;
+
+      if ($cacheDir && is_dir($cacheDir) && chdir($cacheDir)) {
+        foreach (scandir('.') as $fileName) {
+          if (is_file($fileName) && filemtime($fileName) < $minMtimeToKeep) {
+            unlink($fileName);
+          }
+        }
+      }
     }
 }
 ?>

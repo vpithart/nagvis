@@ -31,6 +31,7 @@ var ViewWorldmap = ViewMap.extend({
     init: function() {
         this.initWorldmap();
         this.base();
+        this.cleanMkCacheScheduler();
     },
 
     drawObject: function(obj) {
@@ -229,6 +230,18 @@ var ViewWorldmap = ViewMap.extend({
         }
 
         return [lat, lng];
+    },
+
+    /* instruct backend, 2 minutes after page load, to delete stale mklivestatus query cache files every 15 minutes */
+    cleanMkCacheScheduler: function() {
+      setTimeout(() => {
+        this.cleanMkCacheJob()
+        setInterval(this.cleanMkCacheJob, 900*1000); // every 15 minutes
+      }, 120*1000); // after initial 2 minutes
+    },
+
+    cleanMkCacheJob: function() {
+      call_ajax(oGeneralProperties.path_server + '?mod=Map&act=cleanMkCache', {method: 'DELETE'});
     }
 });
 

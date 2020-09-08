@@ -50,6 +50,9 @@ class CoreModMap extends CoreModule {
             // Worldmap related
             'getWorldmapBounds' => 'view',
             'viewToNewMap'      => 'edit',
+
+            // Mklivestatus related
+            'cleanMkCache'      => 'edit',
         );
 
         // Register valid objects
@@ -154,6 +157,14 @@ class CoreModMap extends CoreModule {
                 break;
                 case 'getWorldmapBounds':
                     $sReturn = $this->getWorldmapBounds();
+                break;
+                case 'cleanMkCache':
+                  $backend_name = cfg('defaults', 'backend');
+                  if ($backend_name && $backend_name[0]) {
+                    $oBackend = new GlobalBackendmklivestatus($backend_name[0]);
+                    $oBackend->cleanQueryCache();
+                  }
+                  $sReturn = '{}';
                 break;
             }
         }

@@ -18,7 +18,7 @@
              delivery. It performs much better than all other existing backends and
              comes with less overhead than other backends. No additional database is
              needed to make this backend work.</p>
-        
+
         <table style="width:100%">
         <tr>
             <th width="200">Value</th><th width="150">Default</th><th>Description</th>
@@ -68,6 +68,21 @@
 		(/omd/sites/[site-id]/var/ssl/ca-certificates.crt) to use the same trust
 		configuration in NagVis and Checkmk.
             </td>
+        </tr>
+        <tr>
+          <td>query_cache_seconds</td>
+          <td>0</td>
+          <td>
+                <font color="#f00">New in 1.9.22</font>: Keep all mklivestatus responses cached for specified amount of seconds. This recudes CPU load on nagios process
+                at a cost of delay of displayed states. Set to 15 - 120 for better performance of dense <tt>worldmap</tt> maps; set to <tt>0</tt> to disable caching.
+          </td>
+        </tr>
+        <tr>
+          <td>query_cache_diractory</td>
+          <td>/dev/shm/mklivestatus-query-cache</td>
+          <td>
+                <font color="#f00">New in 1.9.22</font>: Directory where query cache is kept.
+          </td>
         </tr>
         </table>
         <p>There are also some general parameters. You can read about them in <a href="nagvis_config_format_description.html#backend">main configuration format description</a>.</p>
