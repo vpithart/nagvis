@@ -802,7 +802,7 @@ class GlobalBackendmklivestatus implements GlobalBackendInterface {
             $stateAttr = 'state';
 
         $q = "GET hosts\n".
-          "Columns: ".$stateAttr." plugin_output alias display_name ".
+          "Columns: ".$stateAttr." alias display_name ".
           "address notes last_check next_check state_type ".
           "current_attempt max_check_attempts last_state_change ".
           "last_hard_state_change perf_data acknowledged ".
@@ -817,12 +817,12 @@ class GlobalBackendmklivestatus implements GlobalBackendInterface {
         if(is_array($l) && count($l) > 0) {
             foreach($l as $e) {
                 // Catch unchecked objects
-                // $e[16]: has_been_checked
+                // $e[15]: has_been_checked
                 // $e[0]:  state
-                if($e[16] == 0 || $e[0] === '') {
-                    $arrReturn[$e[17]] = Array(
+                if($e[15] == 0 || $e[0] === '') {
+                    $arrReturn[$e[16]] = Array(
                         UNCHECKED,
-                        l('hostIsPending', Array('HOST' => $e[17])),
+                        l('hostIsPending', Array('HOST' => $e[16])),
                         null,
                         null,
                         null,
@@ -837,19 +837,19 @@ class GlobalBackendmklivestatus implements GlobalBackendInterface {
                     default:  $state = UNKNOWN; break;
                 }
 
-                // 15: acknowledged
-                $acknowledged = $state != UP && $e[14] == 1;
+                // 14: acknowledged
+                $acknowledged = $state != UP && $e[13] == 1;
 
-                // 19: keys, 20: values
-                if(isset($e[19][0]) && isset($e[20][0]))
-                    $custom_vars = array_combine($e[19], $e[20]);
+                // 18: keys, 19: values
+                if(isset($e[18][0]) && isset($e[19][0]))
+                    $custom_vars = array_combine($e[18], $e[19]);
                 else
                     $custom_vars = null;
 
                 // If there is a downtime for this object, save the data
-                // $e[15]: scheduled_downtime_depth
+                // $e[14]: scheduled_downtime_depth
                 $dt_details = array(null, null, null, null);
-                if(isset($e[15]) && $e[15] > 0) {
+                if(isset($e[14]) && $e[14] > 0) {
                     $in_downtime = true;
 
                     // This handles only the first downtime. But this is not backend
@@ -857,32 +857,32 @@ class GlobalBackendmklivestatus implements GlobalBackendInterface {
                     $data = $this->queryLivestatusSingleRow(
                         "GET downtimes\n".
                         "Columns: author comment start_time end_time\n" .
-                        "Filter: host_name = ".$e[17]."\n");
+                        "Filter: host_name = ".$e[16]."\n");
                     if(isset($data[0]))
                         $dt_details = $data;
                 } else {
                     $in_downtime = false;
                 }
 
-                $arrReturn[$e[17]] = Array(
+                $arrReturn[$e[16]] = Array(
                     $state,
-                    $e[1],  // output
+                    '',  // plugin_output -- removed
                     $acknowledged,
                     $in_downtime,
-                    (float)$e[21], // staleness
-                    $e[8],  // state type
-                    $e[9],  // current attempt
-                    $e[10], // max attempts
-                    $e[6],  // last check
-                    $e[7],  // next check
-                    $e[12], // last hard state change
-                    $e[11], // last state change
-                    $e[13], // perfdata
-                    $e[3],  // display name
-                    $e[2], // alias
-                    $e[4],  // address
-                    $e[5],  // notes
-                    $e[18], // check command
+                    (float)$e[20], // staleness
+                    $e[7],  // state type
+                    $e[8],  // current attempt
+                    $e[9], // max attempts
+                    $e[5],  // last check
+                    $e[6],  // next check
+                    $e[11], // last hard state change
+                    $e[10], // last state change
+                    $e[12], // perfdata
+                    $e[2],  // display name
+                    $e[1], // alias
+                    $e[3],  // address
+                    $e[4],  // notes
+                    $e[17], // check command
                     $custom_vars,
                     $dt_details[0], // downtime author
                     $dt_details[1], // downtime comment
@@ -918,7 +918,7 @@ class GlobalBackendmklivestatus implements GlobalBackendInterface {
           "GET services\n" .
           $objFilter.
           "Columns: description display_name ".$stateAttr." ".
-          "host_alias host_address plugin_output notes last_check next_check ".
+          "host_alias host_address notes last_check next_check ".
           "state_type current_attempt max_check_attempts last_state_change ".
           "last_hard_state_change perf_data scheduled_downtime_depth ".
           "acknowledged host_acknowledged host_scheduled_downtime_depth ".
@@ -929,18 +929,18 @@ class GlobalBackendmklivestatus implements GlobalBackendInterface {
         if(is_array($l) && count($l) > 0) {
             foreach($l as $e) {
                 // test for the correct key
-                if(isset($objects[$e[20].'~~'.$e[0]])) {
+                if(isset($objects[$e[19].'~~'.$e[0]])) {
                     $specific = true;
-                    $key = $e[20].'~~'.$e[0];
+                    $key = $e[19].'~~'.$e[0];
                 } else {
                     $specific = false;
-                    $key = $e[20];
+                    $key = $e[19];
                 }
 
                 // Catch pending objects
-                // $e[19]: has_been_checked
+                // $e[18]: has_been_checked
                 // $e[2]:  state
-                if($e[19] == 0 || $e[2] === '') {
+                if($e[18] == 0 || $e[2] === '') {
                     $svc = array_fill(0, EXT_STATE_SIZE, null);
                     $svc[DESCRIPTION]  = $e[0];
                     $svc[DISPLAY_NAME] = $e[1];
@@ -961,34 +961,34 @@ class GlobalBackendmklivestatus implements GlobalBackendInterface {
                      * If state is not OK (=> WARN, CRIT, UNKNOWN) and service is not
                      * acknowledged => check for acknowledged host
                      */
-                    // $e[16]: acknowledged
-                    // $e[17]: host_acknowledged
-                    $acknowledged = $state != OK && ($e[16] == 1 || $e[17] == 1);
+                    // $e[15]: acknowledged
+                    // $e[16]: host_acknowledged
+                    $acknowledged = $state != OK && ($e[15] == 1 || $e[16] == 1);
 
                     // Handle host/service downtimes
-                    // $e[15]: scheduled_downtime_depth
-                    // $e[18]: host_scheduled_downtime_depth
+                    // $e[14]: scheduled_downtime_depth
+                    // $e[17]: host_scheduled_downtime_depth
                     $dt_details = array(null, null, null, null);
-                    if((isset($e[15]) && $e[15] > 0) || (isset($e[18]) && $e[18] > 0)) {
+                    if((isset($e[14]) && $e[14] > 0) || (isset($e[17]) && $e[17] > 0)) {
                         $in_downtime = true;
 
                         // This handles only the first downtime. But this is not backend
                         // specific. The other backends do this as well.
 
                         // Handle host/service downtime difference
-                        if(isset($e[15]) && $e[15] > 0) {
+                        if(isset($e[14]) && $e[14] > 0) {
                             // Service downtime
                             $data = $this->queryLivestatusSingleRow(
                               "GET downtimes\n".
                               "Columns: author comment start_time end_time\n" .
-                              "Filter: host_name = ".$e[20]."\n" .
+                              "Filter: host_name = ".$e[19]."\n" .
                               "Filter: service_description = ".$e[0]."\n");
                         } else {
                             // Host downtime
                             $data = $this->queryLivestatusSingleRow(
                               "GET downtimes\n".
                               "Columns: author comment start_time end_time\n" .
-                              "Filter: host_name = ".$e[20]."\n");
+                              "Filter: host_name = ".$e[19]."\n");
                         }
                         if(isset($data[0]))
                             $dt_details = $data;
@@ -996,33 +996,30 @@ class GlobalBackendmklivestatus implements GlobalBackendInterface {
                         $in_downtime = false;
                     }
 
-                    if(isset($e[22][0]) && isset($e[23][0]))
-                        $custom_vars = array_combine($e[22], $e[23]);
+                    if(isset($e[21][0]) && isset($e[22][0]))
+                        $custom_vars = array_combine($e[21], $e[22]);
                     else
                         $custom_vars = null;
 
-                    $plugin_output = $e[5];
-                    $plugin_output = preg_replace('#<iframe\s.*?>(.*?)</iframe>#i', '', $plugin_output);
-
                     $svc = array(
                         $state,
-                        $plugin_output,
+                        '', // plugin_output -- removed
                         $acknowledged,
                         $in_downtime,
-                        (float)$e[24], // staleness
-                        $e[9],  // state type
-                        $e[10], // current attempt
-                        $e[11], // max check attempts
-                        $e[7],  // last check
-                        $e[8],  // next check
-                        $e[13], // last hard state change
-                        $e[12], // last state change
-                        $e[14], // perfdata
+                        (float)$e[23], // staleness
+                        $e[8],  // state type
+                        $e[9], // current attempt
+                        $e[10], // max check attempts
+                        $e[6],  // last check
+                        $e[7],  // next check
+                        $e[12], // last hard state change
+                        $e[11], // last state change
+                        $e[13], // perfdata
                         $e[1],  // display name
                         $e[3],  // alias
                         $e[4],  // address
-                        $e[6],  // notes
-                        $e[21], // check command
+                        $e[5],  // notes
+                        $e[20], // check command
                         $custom_vars,
                         $dt_details[0], // dt author
                         $dt_details[1], // dt data

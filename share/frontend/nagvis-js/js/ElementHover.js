@@ -188,7 +188,7 @@ var ElementHover = Element.extend({
 
     enable: function() {
         if (!this.enabled) {
-            this._handleMouseMove = this.handleMouseMove.bind(this); 
+            this._handleMouseMove = this.handleMouseMove.bind(this);
             this._handleMouseOut  = this.handleMouseOut.bind(this);
             addEvent(this.obj.trigger_obj, 'mousemove', this._handleMouseMove);
             addEvent(this.obj.trigger_obj, 'mouseout', this._handleMouseOut);
@@ -346,47 +346,47 @@ var ElementHover = Element.extend({
         var hoverLeft = parseInt(this.dom_obj.style.left.replace('px', ''));
         var scrollLeft = document.body.scrollLeft ? document.body.scrollLeft :
                          document.documentElement.scrollLeft;
-    
+
         if (hoverLeft < scrollLeft)
             return false;
-    
+
         // The most right px of the hover menu
         var hoverRight = hoverLeft + this.dom_obj.clientWidth - scrollLeft;
         // The most right px of the viewport
         var viewRight  = pageWidth();
-    
+
         if (hoverRight > viewRight)
             return false;
-    
+
         // There is not enough spacing at the left viewport border
         if (hoverLeft - this.spacing < 0)
             return false;
-    
+
         return true;
     },
 
     tryResize: function(rightSide) {
         if (!isset(rightSide))
             var reposition = false;
-    
+
         var hoverLeft = parseInt(this.dom_obj.style.left.replace('px', ''));
-    
+
         if (rightSide)
             var overhead = hoverLeft + this.dom_obj.clientWidth + this.spacing - pageWidth();
         else
             var overhead = hoverLeft;
         var widthAfterResize = this.dom_obj.clientWidth - overhead;
-    
+
         // If width is larger than this.min_width resize it
         if (widthAfterResize > this.min_width) {
             this.dom_obj.style.width = widthAfterResize + 'px';
-    
+
             if (rightSide) {
                 if(overhead < 0)
                     overhead *= -1
                 this.dom_obj.style.left = (hoverLeft + overhead) + 'px';
             }
-    
+
             return true;
         } else {
             return false;
@@ -465,7 +465,6 @@ var ElementHover = Element.extend({
     replaceMacrosOfChild: function (member_obj, template_html) {
         var oMacros = {
             'obj_summary_state'  : member_obj.conf.summary_state,
-            'obj_summary_output' : member_obj.conf.summary_output,
             'obj_display_name'   : member_obj.conf.display_name
         }
 
@@ -503,36 +502,36 @@ var ElementHover = Element.extend({
 
     replaceDynamicMacros: function (template_html) {
         var oMacros = {};
-    
+
         if (g_view.type === 'map')
             oMacros.map_name = oPageProperties.map_name;
-    
+
         oMacros.last_status_refresh = date(oGeneralProperties.date_format, this.obj.lastUpdate);
-    
+
         oMacros.obj_state = this.obj.conf.state;
         oMacros.obj_summary_state = this.obj.conf.summary_state;
-    
+
         if (this.obj.conf.summary_problem_has_been_acknowledged && this.obj.conf.summary_problem_has_been_acknowledged == 1)
             oMacros.obj_summary_acknowledged = '(Acknowledged)';
-    
+
         if (this.obj.conf.problem_has_been_acknowledged && this.obj.conf.problem_has_been_acknowledged == 1)
             oMacros.obj_acknowledged = '(Acknowledged)';
-    
+
         if (this.obj.conf.summary_in_downtime && this.obj.conf.summary_in_downtime == 1)
             oMacros.obj_summary_in_downtime = '(Downtime)';
-    
+
         if (this.obj.conf.in_downtime && this.obj.conf.in_downtime == 1)
             oMacros.obj_in_downtime = '(Downtime)';
-    
+
         if (this.obj.conf.summary_stale)
             oMacros.obj_summary_stale = '(Stale)';
-    
+
         if (this.obj.conf.stale)
             oMacros.obj_stale = '(Stale)';
-    
+
         oMacros.obj_output = this.obj.conf.output;
         oMacros.obj_summary_output = this.obj.conf.summary_output;
-    
+
         // Macros which are only for services and hosts
         if (this.obj.conf.type === 'host' || this.obj.conf.type === 'service') {
             oMacros.obj_last_check = this.obj.conf.last_check;
@@ -545,7 +544,7 @@ var ElementHover = Element.extend({
             oMacros.obj_state_duration = this.obj.conf.state_duration;
             oMacros.obj_perfdata = this.obj.conf.perfdata;
         }
-    
+
         // On a update the image url replacement is easier. Just replace the old
         // timestamp with the current
         if (this.obj.firstUpdate !== null) {
@@ -554,11 +553,11 @@ var ElementHover = Element.extend({
             if(template_html.search(regex) !== -1)
                 template_html = template_html.replace(regex, '_t='+this.obj.lastUpdate);
         }
-    
+
         // Replace child macros
         if (this.obj.conf.hover_childs_show && this.obj.conf.hover_childs_show == '1')
             template_html = this.replaceChildMacros(template_html);
-    
+
         // Replace all normal macros
         template_html = template_html.replace(/\[(\w*)\]/g, function() {
             return oMacros[ arguments[1] ] || "";
@@ -569,10 +568,10 @@ var ElementHover = Element.extend({
     replaceStaticMacros: function() {
         var oMacros = {};
         var oSectionMacros = {};
-    
+
         if(this.obj.conf.type && this.obj.conf.type != '')
             oMacros.obj_type = this.obj.conf.type;
-    
+
         // Replace language strings
         oMacros.lang_obj_type = _(this.obj.conf.type);
         if (this.obj.conf.type == 'host') {
@@ -604,7 +603,7 @@ var ElementHover = Element.extend({
         // On child service objects in hover menu replace obj_name with
         // service_description
         oMacros.obj_name = this.obj.conf.name;
-    
+
         if(this.obj.conf.alias && this.obj.conf.alias !== '') {
             oMacros.obj_alias        = this.obj.conf.alias;
             oMacros.obj_alias_braces = ' (' +this.obj.conf.alias + ')';
@@ -612,17 +611,17 @@ var ElementHover = Element.extend({
             oMacros.obj_alias        = '';
             oMacros.obj_alias_braces = '';
         }
-    
+
         if(this.obj.conf.display_name && this.obj.conf.display_name !== '')
             oMacros.obj_display_name = this.obj.conf.display_name;
         else
             oMacros.obj_display_name = '';
-    
+
         if(this.obj.conf.notes && this.obj.conf.notes !== '')
             oMacros.obj_notes = this.obj.conf.notes;
         else
             oMacros.obj_notes = '';
-    
+
         if(this.obj.conf.type !== 'map') {
             oMacros.obj_backendid = this.obj.conf.backend_id;
             oMacros.obj_backend_instancename = this.obj.conf.backend_instancename;
@@ -639,12 +638,12 @@ var ElementHover = Element.extend({
             oMacros.custom_2 = '';
             oMacros.custom_3 = '';
         }
-    
+
         // Macros which are only for services and hosts
         if(this.obj.conf.type === 'host' || this.obj.conf.type === 'service') {
             oMacros.obj_address = this.obj.conf.address;
             oMacros.obj_tags    = this.obj.conf.tags.join(', ');
-    
+
             // Add taggroup information
             for (var group_id in this.obj.conf.taggroups) {
                 var group = this.obj.conf.taggroups[group_id];
@@ -662,41 +661,41 @@ var ElementHover = Element.extend({
             oMacros.obj_address = '';
             oMacros.obj_tags    = '';
         }
-    
+
         if (oMacros.obj_tags == '') {
             oSectionMacros.has_tags = '<!--\\sBEGIN\\shas_tags\\s-->.+?<!--\\sEND\\shas_tags\\s-->';
         }
-    
+
         if(this.obj.conf.type === 'service') {
             oMacros.service_description = this.obj.conf.service_description;
             oMacros.pnp_hostname = this.obj.conf.name.replace(/\s/g,'%20');
             oMacros.pnp_service_description = this.obj.conf.service_description.replace(/\s/g,'%20').replace(/#/g, '%23');
         } else
             oSectionMacros.service = '<!--\\sBEGIN\\sservice\\s-->.+?<!--\\sEND\\sservice\\s-->';
-    
+
         // Macros which are only for hosts
         if(this.obj.conf.type === 'host')
             oMacros.pnp_hostname = this.obj.conf.name.replace(' ','%20');
         else
             oSectionMacros.host = '<!--\\sBEGIN\\shost\\s-->.+?<!--\\sEND\\shost\\s-->';
-    
+
         // Replace servicegroup sections when not servicegroup object
         if(this.obj.conf.type !== 'servicegroup' && !(this.obj.conf.type === 'dyngroup' && this.obj.conf.object_types == 'service')) {
             oSectionMacros.servicegroup = '<!--\\sBEGIN\\sservicegroup\\s-->.+?<!--\\sEND\\sservicegroup\\s-->';
         }
-    
+
         // Replace hostgroup sections when not hostgroup object
         if(this.obj.conf.type !== 'hostgroup')
             oSectionMacros.hostgroup = '<!--\\sBEGIN\\shostgroup\\s-->.+?<!--\\sEND\\shostgroup\\s-->';
-    
+
         // Replace map sections when not map object
         if(this.obj.conf.type !== 'map')
             oSectionMacros.map = '<!--\\sBEGIN\\smap\\s-->.+?<!--\\sEND\\smap\\s-->';
-    
+
         // Replace child section when unwanted
         if(this.obj.conf.hover_childs_show && this.obj.conf.hover_childs_show != '1')
             oSectionMacros.childs = '<!--\\sBEGIN\\schilds\\s-->.+?<!--\\sEND\\schilds\\s-->';
-    
+
         // Loop and replace all unwanted section macros
         for (var key in oSectionMacros) {
             var regex = getRegEx('section-'+key, oSectionMacros[key], 'gm');
@@ -704,12 +703,12 @@ var ElementHover = Element.extend({
                 this.template_html = this.template_html.replace(regex, '');
             regex = null;
         }
-    
+
         // Loop and replace all normal macros
         this.template_html = this.template_html.replace(/\[(\w*)\]/g, function() {
             return oMacros[ arguments[1] ] || '['+arguments[1]+']';
         });
-    
+
         // Re-add the clean child code
         // This workaround is needed cause the obj_name macro is replaced
         // by the parent objects macro in current progress
@@ -718,7 +717,7 @@ var ElementHover = Element.extend({
             this.template_html = this.template_html.replace(regex, '<!-- BEGIN loop_child -->'
                                                                    + g_hover_template_childs[this.obj.conf.hover_template]
                                                                    + '<!-- END loop_child -->');
-    
+
         // Search for images and append current timestamp to src (prevent caching of
         // images e.a. when some graphs should be fresh)
         var regex = getRegEx('img', "<img.*src=['\"]?([^>'\"]*)['\"]?");
@@ -727,7 +726,7 @@ var ElementHover = Element.extend({
             for(var i = 0, len = results.length; i < len; i=i+2) {
                 // Replace src value
                 var sTmp = results[i].replace(results[i+1], results[i+1]+"&_t="+this.obj.firstUpdate);
-    
+
                 // replace image code
                 this.template_html = this.template_html.replace(results[i], sTmp);
             }
