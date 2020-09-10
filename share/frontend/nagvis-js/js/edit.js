@@ -549,6 +549,8 @@ var addObjType  = null,
     addAction   = null,
     addX        = [],
     addY        = [],
+    addFromCoords = undefined,
+    addFromHostgroupName = undefined,
     addFollow   = false,
     addShape    = null,
     cloneId     = null;
@@ -578,6 +580,25 @@ function addObject(event, objType, viewType, numLeft, action) {
     add_class(document.body, 'add');
 
     return preventDefaultEvents(event);
+}
+
+function addLineFromPosition(event, objType, fromObjectId) {
+  event = event || window.event;
+
+  addObjType  = objType;
+  addViewType = 'line';
+  addNumLeft  = 1;
+  addAction   = 'add';
+
+  add_class(document.body, 'add');
+
+  var fromObject = g_view.objects[fromObjectId];
+  addFromCoords = [fromObject.conf.xOrig, fromObject.conf.yOrig];
+
+  if (fromObject.conf.type == 'hostgroup')
+    addFromHostgroupName = fromObject.conf.name;
+
+  return preventDefaultEvents(event);
 }
 
 function getEventMousePos(event) {
@@ -621,13 +642,15 @@ function getEventMousePos(event) {
 
 function stopAdding() {
     remove_class(document.body, 'add');
-    addObjType  = null,
-    addViewType = null,
-    addNumLeft  = null,
-    addAction   = null,
-    addX        = [],
-    addY        = [],
-    addFollow   = false,
+    addObjType  = null;
+    addViewType = null;
+    addNumLeft  = null;
+    addAction   = null;
+    addX        = [];
+    addY        = [];
+    addFromCoords = undefined;
+    addFromHostgroupName = undefined;
+    addFollow   = false;
     addShape    = null;
 }
 
@@ -675,6 +698,11 @@ function addClick(e) {
     addX = parts[0];
     addY = parts[1];
 
+    if (addFromCoords !== undefined) {
+      addX.unshift(addFromCoords[0]);
+      addY.unshift(addFromCoords[1]);
+    }
+
     var sUrl = '';
     if(addAction == 'add' || addAction == 'clone')
         sUrl = oGeneralProperties.path_server + '?mod=Map&act=addModify'
@@ -683,7 +711,7 @@ function addClick(e) {
                + '&x=' + addX.join(',')
                + '&y=' + addY.join(',');
 
-    if(addObjType != 'textbox' && addObjType != 'container' 
+    if(addObjType != 'textbox' && addObjType != 'container'
        && addObjType != 'shape' && addViewType != 'icon' && addViewType != '')
         sUrl += '&view_type=' + addViewType;
 
@@ -692,6 +720,9 @@ function addClick(e) {
 
     if(addObjType == 'textbox' || addObjType == 'container')
         sUrl += '&w=' + w+ '&h=' + h;
+
+    if(addObjType == 'host' && addFromHostgroupName)
+        sUrl += '&related_hostgroup_name=' + addFromHostgroupName;
 
     if(sUrl === '')
         return false;

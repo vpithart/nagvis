@@ -384,8 +384,13 @@ class ViewMapAddModify {
                 $array    = isset($prop['array']) && $prop['array'];
 
                 $func = $this->MAPCFG->getListFunc($this->object_type, $propname);
-                // Handle case that e.g. host_names can not be fetched from backend by
-                // showing error text instead of fields
+
+                if ($this->object_type == 'host' && $this->attrs && $this->attrs['related_hostgroup_name']) {
+                  $func = 'listHostNamesOfHostgroup';
+                  global $form_keys;
+                  $form_keys['related_hostgroup_name'] = true; // this prevents rendering of <input type="hidden"> from this
+                }
+
                 try {
                     try {
                         if($this->clone_id !== null)
@@ -427,6 +432,8 @@ class ViewMapAddModify {
 
                     select($propname, $options, $value, $onChange, $hideField);
                 } catch(BackendConnectionProblem $e) {
+                    // Handle case that e.g. host_names can not be fetched from backend by
+                    // showing error text instead of fields
                     form_render_error($propname, l('Unable to fetch data from backend - '
                                            .'falling back to input field.'));
                     input($propname, $value, '', $hideField);

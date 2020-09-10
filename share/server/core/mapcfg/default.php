@@ -157,8 +157,47 @@ function getObjectNames($type, $MAPCFG, $objId, $attrs) {
     return $ret;
 }
 
+function getHostNamesInHostgroup($hostgroupName, $MAPCFG, $objId, $attrs) {
+  global $_BACKEND;
+  $backendIds = false;
+  if (isset($attrs['backend_id']) && $attrs['backend_id'] != '') {
+      $backendIds = $attrs['backend_id'];
+  } elseif ($objId !== null) {
+      $backendIds = $MAPCFG->getValue($objId, 'backend_id');
+  }
+  if (!$backendIds) {
+      $backendIds = $MAPCFG->getValue(0, 'backend_id');
+  }
+
+  // Return simply nothing when a user just choosen to insert multiple backends
+  if(isset($attrs['backend_id']) && $attrs['backend_id'] == array('<<<other>>>'))
+      return array();
+
+  // Initialize the backend
+  foreach($backendIds as $backendId) {
+      $_BACKEND->checkBackendExists($backendId, true);
+      $_BACKEND->checkBackendFeature($backendId, 'getObjects', true);
+  }
+
+  // Read all host names of from the backend
+  $ret = Array('' => '');
+  foreach($backendIds as $backendId) {
+      $objs = $_BACKEND->getBackend($backendId)->getHostNamesInHostgroup($hostgroupName);
+      foreach($objs AS $obj) {
+          $ret[$obj] = $obj;
+      }
+  }
+
+  natcasesort($ret);
+  return $ret;
+}
+
 function listHostNames($MAPCFG, $objId, $attrs) {
     return getObjectNames('host', $MAPCFG, $objId, $attrs);
+}
+
+function listHostNamesOfHostgroup($MAPCFG, $objId, $attrs) {
+  return getHostNamesInHostgroup($attrs['related_hostgroup_name'], $MAPCFG, $objId, $attrs);
 }
 
 function listHostgroupNames($MAPCFG, $objId, $attrs) {

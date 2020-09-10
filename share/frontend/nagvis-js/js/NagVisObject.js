@@ -231,11 +231,13 @@ var NagVisObject = Base.extend({
     },
 
     transformCoordinates: function() {
-        var converted = g_view.project(
-            this.conf.x.toString().split(','),
-            this.conf.y.toString().split(','));
+        let xOrig = this.conf.x.toString().split(',');
+        let yOrig = this.conf.y.toString().split(',');
+        var converted = g_view.project(xOrig, yOrig);
         this.conf.x = converted[0].join(',');
         this.conf.y = converted[1].join(',');
+        this.conf.xOrig = xOrig;
+        this.conf.yOrig = yOrig;
     },
 
     getLineMid: function(coord, dir) {

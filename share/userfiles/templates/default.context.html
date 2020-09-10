@@ -85,4 +85,18 @@
 
     <!-- END permitted_perform -->
     <!-- END service -->
+
+    <!-- BEGIN hostgroup -->
+    <li onmouseover="ddMenu('context-addlinefromhere-[obj_id]', true)" onmouseout="ddMenuHide();" class="dropdown subdropdown">
+        <a class="submenu-link" id="context-addlinefromhere-[obj_id]-ddheader" href="#">Add Line From Here</a>
+        <ul id="context-addlinefromhere-[obj_id]-ddcontent">
+          <li><a class="topline" href="#" onclick="addLineFromPosition(event, 'host', '[obj_id]');ddMenuHide(); contextHide();">Host</a></li>
+          <li><a class="" href="#" onclick="addObject(event, 'service', 'line', 2, 'add');ddMenuHide();">Service</a></li>
+          <li><a class="" href="#" onclick="addObject(event, 'hostgroup', 'line', 2, 'add');ddMenuHide();">Hostgroup</a></li>
+          <li><a class="" href="#" onclick="addObject(event, 'servicegroup', 'line', 2, 'add');ddMenuHide();">Service Group</a></li>
+          <li><a class="underline" href="#" onclick="addObject(event, 'dyngroup', 'line', 2, 'add');ddMenuHide();">Dynamic Group</a></li>
+          <li><a class="underline" href="#" onclick="addLineFromPosition(event, 'line', '[obj_id]'); ddMenuHide(); contextHide();">Stateless Line</a></li>
+        </ul>
+    </li>
+    <!-- END hostgroup -->
 </ul>
