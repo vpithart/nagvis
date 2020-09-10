@@ -86,6 +86,8 @@ class ViewMapAddModify {
 
         // FIXME: Are all given attrs valid ones?
         foreach($this->attrs AS $key => $val) {
+            if($key == 'related_hostgroup_name')
+              continue;
             if(!isset($attrDefs[$key]))
                 throw new FieldInputError($key, l('The attribute "[A]" is unknown.', array("A" => $key)));
             if(isset($attrDefs[$key]['deprecated']) && $attrDefs[$key]['deprecated'] === true)
@@ -183,6 +185,7 @@ class ViewMapAddModify {
             $this->validateAttributes();
 
             // append a new object definition to the map configuration
+            unset($this->attrs['related_hostgroup_name']);
             $obj_id = $this->MAPCFG->addElement($this->object_type, $this->attrs, true);
 
             js('popupWindowClose();'
@@ -381,15 +384,11 @@ class ViewMapAddModify {
                 select($propname, $options, $value, $onChange, $hideField);
             break;
             case 'dropdown':
-                $array    = isset($prop['array']) && $prop['array'];
+                $array = isset($prop['array']) && $prop['array'];
 
                 $func = $this->MAPCFG->getListFunc($this->object_type, $propname);
-
-                if ($this->object_type == 'host' && $this->attrs && $this->attrs['related_hostgroup_name']) {
+                if ($propname == 'host_name' && $this->attrs && isset($this->attrs['related_hostgroup_name']))
                   $func = 'listHostNamesOfHostgroup';
-                  global $form_keys;
-                  $form_keys['related_hostgroup_name'] = true; // this prevents rendering of <input type="hidden"> from this
-                }
 
                 try {
                     try {

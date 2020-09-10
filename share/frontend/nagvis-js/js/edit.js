@@ -593,10 +593,12 @@ function addLineFromPosition(event, objType, fromObjectId) {
   add_class(document.body, 'add');
 
   var fromObject = g_view.objects[fromObjectId];
-  addFromCoords = [fromObject.conf.xOrig, fromObject.conf.yOrig];
+  if (fromObject) {
+    addFromCoords = [fromObject.conf.xOrig, fromObject.conf.yOrig];
 
-  if (fromObject.conf.type == 'hostgroup')
-    addFromHostgroupName = fromObject.conf.name;
+    if (fromObject.conf.type == 'hostgroup' && (objType == 'host' || objType == 'service'))
+      addFromHostgroupName = fromObject.conf.name;
+  }
 
   return preventDefaultEvents(event);
 }
@@ -721,7 +723,7 @@ function addClick(e) {
     if(addObjType == 'textbox' || addObjType == 'container')
         sUrl += '&w=' + w+ '&h=' + h;
 
-    if(addObjType == 'host' && addFromHostgroupName)
+    if(addFromHostgroupName)
         sUrl += '&related_hostgroup_name=' + addFromHostgroupName;
 
     if(sUrl === '')
