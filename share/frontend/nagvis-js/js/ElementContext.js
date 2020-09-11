@@ -280,6 +280,8 @@ var ElementContext = Element.extend({
         if(this.obj.conf.view_type !== 'line'
            || (this.obj.conf.line_type == 11 || this.obj.conf.line_type == 12))
             oSectionMacros.line_type = '<!--\\sBEGIN\\sline_two_parts\\s-->.+?<!--\\sEND\\sline_two_parts\\s-->';
+        if(this.obj.conf.view_type !== 'icon')
+            oSectionMacros.icon = '<!--\\sBEGIN\\sicon\\s-->.+?<!--\\sEND\\sicon\\s-->';
 
         // Replace hostgroup range macros when not in a hostgroup
         if(this.obj.conf.type !== 'hostgroup')
