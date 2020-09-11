@@ -596,7 +596,7 @@ function addLineFromPosition(event, objType, fromObjectId) {
   if (fromObject) {
     addFromCoords = [fromObject.conf.xOrig, fromObject.conf.yOrig];
 
-    if (fromObject.conf.type == 'hostgroup' && (objType == 'host' || objType == 'service'))
+    if (fromObject.conf.type == 'hostgroup' && (objType == 'host' || objType == 'service' || objType == 'dyngroup'))
       addFromHostgroupName = fromObject.conf.name;
   }
 

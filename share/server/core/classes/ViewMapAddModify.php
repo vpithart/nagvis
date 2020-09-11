@@ -258,7 +258,10 @@ class ViewMapAddModify {
     }
 
     private function drawField($propname, $prop, $properties) {
-        $default_value = $this->MAPCFG->getDefaultValue($this->object_type, $propname);
+        if (isset($prop['default']))
+            $default_value = $prop['default'];
+        else
+            $default_value = $this->MAPCFG->getDefaultValue($this->object_type, $propname);
 
         // Set field type to show
         $fieldType = 'text';
@@ -387,6 +390,8 @@ class ViewMapAddModify {
                 $array = isset($prop['array']) && $prop['array'];
 
                 $func = $this->MAPCFG->getListFunc($this->object_type, $propname);
+
+                // The "Line From Here" feature
                 if ($propname == 'host_name' && $this->attrs && isset($this->attrs['related_hostgroup_name']))
                   $func = 'listHostNamesOfHostgroup';
 
@@ -523,6 +528,25 @@ class ViewMapAddModify {
         js_form_start('addmodify');
 
         $obj_spec = $this->getProperties();
+
+        // The "Line From Here" feature, type:dyngroup
+        if ($this->mode == 'addmodify' && $this->object_type == 'dyngroup' && isset($this->attrs['related_hostgroup_name'])) {
+          $host_list = listHostNamesOfHostgroup($this->MAPCFG, $this->object_id, $this->attrs);
+          if (is_array($host_list) && count($host_list) >= 1) {
+            array_shift($host_list); // remove the '' => '' void item
+
+            $predefined_filter = "";
+            foreach ($host_list as $host_name) {
+              $predefined_filter .= "Filter: host_name = $host_name\\n";
+            }
+            $predefined_filter .= "Or: " . count($host_list) . "\\n";
+
+            $this->attrs['name'] = "All Hosts in " . $this->attrs['related_hostgroup_name'];
+            $this->attrs['object_types'] = 'host';
+            $this->attrs['object_filter'] = $predefined_filter;
+          }
+        }
+
         $props_by_section = array();
         foreach ($obj_spec AS $propname => $prop) {
             $sec = $prop['section'];
