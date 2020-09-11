@@ -86,6 +86,8 @@ class ViewMapAddModify {
 
         // FIXME: Are all given attrs valid ones?
         foreach($this->attrs AS $key => $val) {
+            if($key == 'related_hostgroup_name')
+              continue;
             if(!isset($attrDefs[$key]))
                 throw new FieldInputError($key, l('The attribute "[A]" is unknown.', array("A" => $key)));
             if(isset($attrDefs[$key]['deprecated']) && $attrDefs[$key]['deprecated'] === true)
@@ -183,6 +185,7 @@ class ViewMapAddModify {
             $this->validateAttributes();
 
             // append a new object definition to the map configuration
+            unset($this->attrs['related_hostgroup_name']);
             $obj_id = $this->MAPCFG->addElement($this->object_type, $this->attrs, true);
 
             js('popupWindowClose();'
@@ -255,7 +258,10 @@ class ViewMapAddModify {
     }
 
     private function drawField($propname, $prop, $properties) {
-        $default_value = $this->MAPCFG->getDefaultValue($this->object_type, $propname);
+        if (isset($prop['default']))
+            $default_value = $prop['default'];
+        else
+            $default_value = $this->MAPCFG->getDefaultValue($this->object_type, $propname);
 
         // Set field type to show
         $fieldType = 'text';
@@ -381,11 +387,14 @@ class ViewMapAddModify {
                 select($propname, $options, $value, $onChange, $hideField);
             break;
             case 'dropdown':
-                $array    = isset($prop['array']) && $prop['array'];
+                $array = isset($prop['array']) && $prop['array'];
 
                 $func = $this->MAPCFG->getListFunc($this->object_type, $propname);
-                // Handle case that e.g. host_names can not be fetched from backend by
-                // showing error text instead of fields
+
+                // The "Line From Here" feature
+                if ($propname == 'host_name' && $this->attrs && isset($this->attrs['related_hostgroup_name']))
+                  $func = 'listHostNamesOfHostgroup';
+
                 try {
                     try {
                         if($this->clone_id !== null)
@@ -427,6 +436,8 @@ class ViewMapAddModify {
 
                     select($propname, $options, $value, $onChange, $hideField);
                 } catch(BackendConnectionProblem $e) {
+                    // Handle case that e.g. host_names can not be fetched from backend by
+                    // showing error text instead of fields
                     form_render_error($propname, l('Unable to fetch data from backend - '
                                            .'falling back to input field.'));
                     input($propname, $value, '', $hideField);
@@ -517,6 +528,25 @@ class ViewMapAddModify {
         js_form_start('addmodify');
 
         $obj_spec = $this->getProperties();
+
+        // The "Line From Here" feature, type:dyngroup
+        if ($this->mode == 'addmodify' && $this->object_type == 'dyngroup' && isset($this->attrs['related_hostgroup_name'])) {
+          $host_list = listHostNamesOfHostgroup($this->MAPCFG, $this->object_id, $this->attrs);
+          if (is_array($host_list) && count($host_list) >= 1) {
+            array_shift($host_list); // remove the '' => '' void item
+
+            $predefined_filter = "";
+            foreach ($host_list as $host_name) {
+              $predefined_filter .= "Filter: host_name = $host_name\\n";
+            }
+            $predefined_filter .= "Or: " . count($host_list) . "\\n";
+
+            $this->attrs['name'] = "All Hosts in " . $this->attrs['related_hostgroup_name'];
+            $this->attrs['object_types'] = 'host';
+            $this->attrs['object_filter'] = $predefined_filter;
+          }
+        }
+
         $props_by_section = array();
         foreach ($obj_spec AS $propname => $prop) {
             $sec = $prop['section'];

@@ -1,6 +1,8 @@
 1.9.22
 Frontend:
   * Added new line type: polylines (polygonal chains)
+Worldmap:
+  * Feature: context menu "Add Line From Here"
 
 1.9.21
 Worldmap:

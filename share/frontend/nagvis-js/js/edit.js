@@ -587,6 +587,8 @@ var addObjType  = null,
     addAction   = null,
     addX        = [],
     addY        = [],
+    addFromCoords = undefined,
+    addFromHostgroupName = undefined,
     addFollow   = false,
     addShape    = null,
     cloneId     = null;
@@ -641,6 +643,27 @@ function addObject(event, objType, viewType, numLeft, action) {
     return preventDefaultEvents(event);
 }
 
+function addLineFromPosition(event, objType, fromObjectId) {
+  event = event || window.event;
+
+  addObjType  = objType;
+  addViewType = 'line';
+  addNumLeft  = 1;
+  addAction   = 'add';
+
+  add_class(document.body, 'add');
+
+  var fromObject = g_view.objects[fromObjectId];
+  if (fromObject) {
+    addFromCoords = [fromObject.conf.xOrig, fromObject.conf.yOrig];
+
+    if (fromObject.conf.type == 'hostgroup' && (objType == 'host' || objType == 'service' || objType == 'dyngroup'))
+      addFromHostgroupName = fromObject.conf.name;
+  }
+
+  return preventDefaultEvents(event);
+}
+
 function getEventMousePos(event) {
     event = event || window.event;
 
@@ -682,13 +705,15 @@ function getEventMousePos(event) {
 
 function stopAdding() {
     remove_class(document.body, 'add');
-    addObjType  = null,
-    addViewType = null,
-    addNumLeft  = null,
-    addAction   = null,
-    addX        = [],
-    addY        = [],
-    addFollow   = false,
+    addObjType  = null;
+    addViewType = null;
+    addNumLeft  = null;
+    addAction   = null;
+    addX        = [];
+    addY        = [];
+    addFromCoords = undefined;
+    addFromHostgroupName = undefined;
+    addFollow   = false;
     addShape    = null;
 }
 
@@ -741,6 +766,11 @@ function addClick(e) {
     addX = parts[0];
     addY = parts[1];
 
+    if (addFromCoords !== undefined) {
+      addX.unshift(addFromCoords[0]);
+      addY.unshift(addFromCoords[1]);
+    }
+
     var sUrl = '';
     if(addAction == 'add' || addAction == 'clone')
         sUrl = oGeneralProperties.path_server + '?mod=Map&act=addModify'
@@ -758,6 +788,9 @@ function addClick(e) {
 
     if(addObjType == 'textbox' || addObjType == 'container')
         sUrl += '&w=' + w+ '&h=' + h;
+
+    if(addFromHostgroupName)
+        sUrl += '&related_hostgroup_name=' + addFromHostgroupName;
 
     if(sUrl === '')
         return false;
