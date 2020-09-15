@@ -706,8 +706,12 @@ function addClick(e) {
     }
 
     var sUrl = '';
+    var sAction = 'addModify';
+
+    if (addObjType == 'dyngroup' && addFromHostgroupName) sAction = 'addModifyPickHost';
+
     if(addAction == 'add' || addAction == 'clone')
-        sUrl = oGeneralProperties.path_server + '?mod=Map&act=addModify'
+        sUrl = oGeneralProperties.path_server + '?mod=Map&act=' + sAction
                + '&show=' + oPageProperties.map_name
                + '&type=' + addObjType
                + '&x=' + addX.join(',')
@@ -735,7 +739,11 @@ function addClick(e) {
         document.getElementById('map').removeChild(addShape.cnv);
     }
 
-    showFrontendDialog(sUrl, _('Create Object'));
+    if (sAction == 'addModifyPickHost')
+      showFrontendDialog(sUrl, _('Create Dynamic Group (all objects of host)'));
+    else
+      showFrontendDialog(sUrl, _('Create Object'));
+
     stopAdding();
     return false;
 }

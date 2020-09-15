@@ -50,6 +50,7 @@ class CoreModMap extends CoreModule {
             // Worldmap related
             'getWorldmapBounds' => 'view',
             'viewToNewMap'      => 'edit',
+            'addModifyPickHost'      => 'edit',
         );
 
         // Register valid objects
@@ -64,6 +65,7 @@ class CoreModMap extends CoreModule {
             case 'getObjectStates':
             case 'manageTmpl':
             case 'addModify':
+            case 'addModifyPickHost':
             case 'doExportMap':
             case 'getWorldmapBounds':
                 // When e.g. submitting the addModify form the show parameter is a POST variable
@@ -135,7 +137,14 @@ class CoreModMap extends CoreModule {
                         'object_type' => $VIEW->object_type()
                     ));
                 break;
-                case 'manageTmpl':
+                case 'addModifyPickHost':
+                  $VIEW = new ViewMapAddModifyPickHost();
+                  $sReturn = json_encode(Array(
+                      'code' => $VIEW->parse(),
+                      'object_type' => $VIEW->object_type()
+                  ));
+              break;
+              case 'manageTmpl':
                     $VIEW = new ViewMapManageTmpl();
                     $sReturn = json_encode(Array('code' => $VIEW->parse()));
                 break;

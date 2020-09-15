@@ -88,6 +88,8 @@ class ViewMapAddModify {
         foreach($this->attrs AS $key => $val) {
             if($key == 'related_hostgroup_name')
               continue;
+            if($key == 'related_host_name')
+              continue;
             if(!isset($attrDefs[$key]))
                 throw new FieldInputError($key, l('The attribute "[A]" is unknown.', array("A" => $key)));
             if(isset($attrDefs[$key]['deprecated']) && $attrDefs[$key]['deprecated'] === true)
@@ -186,6 +188,7 @@ class ViewMapAddModify {
 
             // append a new object definition to the map configuration
             unset($this->attrs['related_hostgroup_name']);
+            unset($this->attrs['related_host_name']);
             $obj_id = $this->MAPCFG->addElement($this->object_type, $this->attrs, true);
 
             js('popupWindowClose();'
@@ -530,19 +533,19 @@ class ViewMapAddModify {
         $obj_spec = $this->getProperties();
 
         // The "Line From Here" feature, type:dyngroup
-        if ($this->mode == 'addmodify' && $this->object_type == 'dyngroup' && isset($this->attrs['related_hostgroup_name'])) {
-          $host_list = listHostNamesOfHostgroup($this->MAPCFG, $this->object_id, $this->attrs);
-          if (is_array($host_list) && count($host_list) >= 1) {
-            array_shift($host_list); // remove the '' => '' void item
-
-            $predefined_filter = "";
-            foreach ($host_list as $host_name) {
-              $predefined_filter .= "Filter: host_name = $host_name\\n";
+        if ($this->mode == 'addmodify' && $this->object_type == 'dyngroup' && isset($this->attrs['related_host_name'])) {
+          $this->attrs['host_name'] = $this->attrs['related_host_name'];
+          $service_list = listServiceNames($this->MAPCFG, $this->object_id, $this->attrs);
+          if (is_array($service_list) && count($service_list) >= 2) {
+            array_shift($service_list);
+            $predefined_filter = "Filter: host_name = " . $this->attrs['related_host_name'] . "\\n";
+            foreach ($service_list as $service_name) {
+              $predefined_filter .= "Filter: description = $service_name\\n";
             }
-            $predefined_filter .= "Or: " . count($host_list) . "\\n";
+            $predefined_filter .= "Or: " . count($service_list) . "\\n";
 
-            $this->attrs['name'] = "All Hosts in " . $this->attrs['related_hostgroup_name'];
-            $this->attrs['object_types'] = 'host';
+            $this->attrs['name'] = "All Services at " . $this->attrs['related_host_name'];
+            $this->attrs['object_types'] = 'service';
             $this->attrs['object_filter'] = $predefined_filter;
           }
         }
