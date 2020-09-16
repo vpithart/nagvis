@@ -534,20 +534,10 @@ class ViewMapAddModify {
 
         // The "Line From Here" feature, type:dyngroup
         if ($this->mode == 'addmodify' && $this->object_type == 'dyngroup' && isset($this->attrs['related_host_name'])) {
-          $this->attrs['host_name'] = $this->attrs['related_host_name'];
-          $service_list = listServiceNames($this->MAPCFG, $this->object_id, $this->attrs);
-          if (is_array($service_list) && count($service_list) >= 2) {
-            array_shift($service_list);
-            $predefined_filter = "Filter: host_name = " . $this->attrs['related_host_name'] . "\\n";
-            foreach ($service_list as $service_name) {
-              $predefined_filter .= "Filter: description = $service_name\\n";
-            }
-            $predefined_filter .= "Or: " . count($service_list) . "\\n";
-
-            $this->attrs['name'] = "All Services at " . $this->attrs['related_host_name'];
-            $this->attrs['object_types'] = 'service';
-            $this->attrs['object_filter'] = $predefined_filter;
-          }
+          $predefined_filter = "Filter: host_name = " . $this->attrs['related_host_name'] . "\\n";
+          $this->attrs['name'] = $this->attrs['related_host_name'] . " (All Services)";
+          $this->attrs['object_types'] = 'service';
+          $this->attrs['object_filter'] = $predefined_filter;
         }
 
         $props_by_section = array();
